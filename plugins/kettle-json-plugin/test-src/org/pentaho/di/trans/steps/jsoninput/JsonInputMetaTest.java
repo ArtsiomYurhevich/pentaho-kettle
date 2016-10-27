@@ -30,10 +30,12 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.variables.VariableSpace;
+import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.metastore.api.IMetaStore;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -140,6 +142,15 @@ public class JsonInputMetaTest {
     jsonInputMeta.getFields( rowMeta, NAME, info, nextStep, space, repository, metaStore );
 
     verify( rowMeta ).removeValueMeta( 0 );
+  }
+
+  @Test
+  public void testReadRepSetAcceptFilenames() throws Exception {
+    ObjectId objectId = () -> "id";
+    when( repository.getStepAttributeBoolean( objectId, "IsInFields" ) ).thenReturn( true );
+    jsonInputMeta.readRep( repository, null, objectId, null);
+    Assert.assertTrue( jsonInputMeta.isInFields());
+    Assert.assertTrue( jsonInputMeta.inputFiles.acceptingFilenames);
   }
 
   @Test

@@ -356,11 +356,29 @@ public class JsonInputTest {
     meta.setRemoveSourceField( true );
     final String input = getBasicTestJson();
 
-    JsonInput jsonInput = createJsonInput( "json", meta, new Object[] { input }, new Object[] { input } );
+    JsonInput jsonInput = createJsonInput( "json", meta, new Object[] { input } );
     processRows( jsonInput, 8 );
     disposeJsonInput( jsonInput );
 
     Assert.assertEquals( 5, jsonInput.getLinesWritten() );
+  }
+
+  @Test
+  public void testDoNotSkipRowIfInputIsNull() throws Exception {
+    JsonInputField field = new JsonInputField( "foo" );
+    field.setPath( "$.foo" );
+    field.setType( ValueMetaInterface.TYPE_STRING );
+    JsonInputMeta meta = createSimpleMeta( "json", field );
+    JsonInput jsonInput = new JsonInput( helper.stepMeta, helper.stepDataInterface, 0, helper.transMeta, helper.trans );
+    JsonInputData data = new JsonInputData();
+    RowSet input = helper.getMockInputRowSet( new Object[] { null, "something" } );
+    RowMetaInterface rowMeta = createRowMeta( new ValueMetaString( "json" ), new ValueMetaString( "json1" ) );
+    input.setRowMeta( rowMeta );
+    jsonInput.getInputRowSets().add( input );
+    jsonInput.setInputRowMeta( rowMeta );
+    jsonInput.init( meta, data );
+    processRows( jsonInput, 1 );
+    Assert.assertEquals( 1, jsonInput.getLinesWritten() );
   }
 
 
@@ -972,10 +990,8 @@ public class JsonInputTest {
   }
 
   protected JsonInput createJsonInput( final String inCol, JsonInputMeta meta, Object[]... inputRows ) {
-    JsonInputData data = new JsonInputData();
-
+    JsonInputData  data = new JsonInputData();
     JsonInput jsonInput = new JsonInput( helper.stepMeta, helper.stepDataInterface, 0, helper.transMeta, helper.trans );
-
     RowSet input = helper.getMockInputRowSet( inputRows );
     RowMetaInterface rowMeta = createRowMeta( new ValueMetaString( inCol ) );
     input.setRowMeta( rowMeta );

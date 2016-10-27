@@ -24,7 +24,9 @@ package org.pentaho.di.trans.steps.jsoninput.reader;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.pentaho.di.core.RowSet;
 import org.pentaho.di.core.SingleRowRowSet;
@@ -134,7 +136,8 @@ public class FastJsonReader implements IJsonReader {
     public TransposedRowSet( List<List<?>> results ) {
       super();
       this.results = results;
-      this.rowCount = results.isEmpty() ? 0 : results.get( 0 ).size();
+      int maxSize = results.stream().sorted((v1, v2) -> v1.size() > v2.size()? -1: 1).findFirst().get().size();
+      this.rowCount = results.isEmpty() ? 0 : maxSize;
     }
 
     @Override
@@ -143,12 +146,38 @@ public class FastJsonReader implements IJsonReader {
         results.clear();
         return null;
       }
+      List<Integer> rowsIndexesWithSingleInstance = new ArrayList<>();
       Object[] rowData = new Object[ results.size() ];
       for ( int col = 0; col < results.size(); col++ ) {
-        rowData[ col ] = results.get( col ).get( rowNbr );
+        if( results.get( col ).size() == 0 ) {
+          continue;
+        }
+        if ( results.get( col ).size() == 1 ) {
+          rowData[ col ] = results.get( col ).get( 0 );
+          rowsIndexesWithSingleInstance.add( col );
+        } else {
+          rowData[ col ] = results.get( col ).get( rowNbr );
+        }
       }
       rowNbr++;
+
+      if( rowCount > 1) {
+        rowData = checkIfAllNotNullExceptParticular( rowData, rowsIndexesWithSingleInstance)? rowData : getRow();
+      }
+
       return rowData;
+    }
+
+    private boolean checkIfAllNotNullExceptParticular( Object[] toCheck, List<Integer> indexesToSkip) {
+      for( int i = 0; i < toCheck.length ; i++) {
+        if( indexesToSkip.contains( i )) {
+          continue;
+        }
+        if( toCheck[i] != null) {
+          return true;
+        }
+      }
+      return false;
     }
 
     @Override
@@ -175,6 +204,11 @@ public class FastJsonReader implements IJsonReader {
     int i = 0;
     for ( JsonPath path : paths ) {
       List<Object> res = getReadContext().read( path );
+      if (res.size() == 1) {
+        results.add( res );
+        i++;
+        continue;
+      }
       if ( res.size() != lastSize && lastSize > 0 ) {
         throw new KettleException( BaseMessages.getString(
             PKG, "JsonInput.Error.BadStructure", res.size(), fields[i].getPath(), prevPath, lastSize ) );
@@ -187,8 +221,10 @@ public class FastJsonReader implements IJsonReader {
       prevPath = fields[i].getPath();
       i++;
     }
+
     return results;
   }
+
 
   public static boolean isAllNull( Iterable<?> list ) {
     for ( Object obj : list ) {
