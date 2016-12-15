@@ -39,6 +39,7 @@ import org.pentaho.di.core.BlockingRowSet;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleXMLException;
 import org.pentaho.di.core.row.RowDataUtil;
+import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.xml.XMLParserFactoryProducer;
 import org.pentaho.di.i18n.BaseMessages;
@@ -111,9 +112,9 @@ public class XMLJoin extends BaseStep implements StepInterface {
             .getTargetXMLfield() ) );
       }
 
-      data.outputRowMeta = data.TargetRowSet.getRowMeta().clone();
+      data.outputRowMeta = new RowMeta();
       meta.getFields( data.outputRowMeta, getStepname(), new RowMetaInterface[] { data.TargetRowSet.getRowMeta() },
-          null, this, repository, metaStore );
+          null, getTransMeta(), repository, metaStore );
       data.outputRowData = rTarget.clone();
 
       // get the target xml structure and create a DOM
