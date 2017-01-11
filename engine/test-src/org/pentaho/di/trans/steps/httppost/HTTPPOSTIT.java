@@ -22,16 +22,21 @@
 
 package org.pentaho.di.trans.steps.httppost;
 
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 
+import com.google.common.io.ByteStreams;
+import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
+import org.apache.any23.encoding.TikaEncodingDetector;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
@@ -57,7 +62,6 @@ import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.steps.mock.StepMockHelper;
 
-import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
@@ -65,7 +69,7 @@ import com.sun.net.httpserver.HttpServer;
  * User: Dzmitry Stsiapanau Date: 12/2/13 Time: 4:35 PM
  */
 public class HTTPPOSTIT {
-  private class HTTPPOSTHandler extends HTTPPOST {
+  class HTTPPOSTHandler extends HTTPPOST {
 
     Object[] row = new Object[] { "anyData" };
     Object[] outputRow;
@@ -161,7 +165,6 @@ public class HTTPPOSTIT {
       stepMockHelper.logChannelInterface );
     when( stepMockHelper.trans.isRunning() ).thenReturn( true );
     verify( stepMockHelper.trans, never() ).stopAll();
-    startHttp204Answer();
   }
 
   @After
@@ -172,6 +175,7 @@ public class HTTPPOSTIT {
 
   @Test
   public void test204Answer() throws Exception {
+    startHttpServer( get204AnswerHandler() );
     HTTPPOSTData data = new HTTPPOSTData();
     int[] index = { 0, 1 };
     RowMeta meta = new RowMeta();
@@ -196,6 +200,7 @@ public class HTTPPOSTIT {
 
   @Test
   public void testResponseHeader() throws Exception {
+    startHttpServer( get204AnswerHandler() );
     HTTPPOSTData data = new HTTPPOSTData();
     int[] index = { 0, 1, 2 };
     RowMeta meta = new RowMeta();
@@ -214,7 +219,7 @@ public class HTTPPOSTIT {
     when( stepMockHelper.processRowsStepMetaInterface.getArgumentField() ).thenReturn( new String[] {} );
     when( stepMockHelper.processRowsStepMetaInterface.getResultCodeFieldName() ).thenReturn( "ResultCodeFieldName" );
     when( stepMockHelper.processRowsStepMetaInterface.getFieldName() ).thenReturn( "ResultFieldName" );
-    when( stepMockHelper.processRowsStepMetaInterface.getEncoding() ).thenReturn( "UTF8" );
+    when( stepMockHelper.processRowsStepMetaInterface.getEncoding() ).thenReturn( "UTF-8" );
     when( stepMockHelper.processRowsStepMetaInterface.getResponseHeaderFieldName() ).thenReturn(
             "ResponseHeaderFieldName" );
     HTTPPOST.init( stepMockHelper.processRowsStepMetaInterface, data );
@@ -223,17 +228,85 @@ public class HTTPPOSTIT {
     Assert.assertTrue( meta.equals( out, expectedRow, index ) );
   }
 
+  @Test
+  public void testContentTypeEncodingWasSet() throws Exception {
+    startHttpServer( getEncodingCheckingHandler( "UTF-8") );
+    HTTPPOSTData data = new HTTPPOSTData();
+    RowMeta meta = new RowMeta();
+    meta.addValueMeta( new ValueMetaString( "fieldName" ) );
+    HTTPPOSTHandler httpPost = new HTTPPOSTHandler(
+      stepMockHelper.stepMeta, data, 0, stepMockHelper.transMeta, stepMockHelper.trans, false );
+    RowMetaInterface inputRowMeta = mock( RowMetaInterface.class );
+    String testString = "test string тест рус ";
+    httpPost.setInputRowMeta( inputRowMeta );
+    httpPost.row = new Object[] { "test string простите " };
+    when( inputRowMeta.clone() ).thenReturn( inputRowMeta );
+    when( stepMockHelper.processRowsStepMetaInterface.getUrl() ).thenReturn( HTTP_LOCALHOST_9998 );
+    when( stepMockHelper.processRowsStepMetaInterface.getQueryField() ).thenReturn( new String[] {} );
+    when( stepMockHelper.processRowsStepMetaInterface.getArgumentField() ).thenReturn( new String[] { "testBodyField" } );
+    when( stepMockHelper.processRowsStepMetaInterface.getArgumentParameter() ).thenReturn( new String[] { "testBodyParam" } );
+    when( stepMockHelper.processRowsStepMetaInterface.getArgumentHeader() ).thenReturn( new boolean[] { false } );
+    when( stepMockHelper.processRowsStepMetaInterface.getFieldName() ).thenReturn( "ResultFieldName" );
+    when( stepMockHelper.processRowsStepMetaInterface.getEncoding() ).thenReturn( "UTF-16" );
+    when( inputRowMeta.getString( httpPost.row, 0 ) ).thenReturn( testString );
+    httpPost.init( stepMockHelper.processRowsStepMetaInterface, data );
+    Assert.assertTrue( httpPost.processRow( stepMockHelper.processRowsStepMetaInterface, data ) );
+  }
 
-  private void startHttp204Answer() throws IOException {
+  private void startHttpServer( HttpHandler httpHandler ) throws IOException {
     httpServer = HttpServer.create( new InetSocketAddress( HTTPPOSTIT.host, HTTPPOSTIT.port ), 10 );
-    httpServer.createContext( "/", new HttpHandler() {
-      @Override
-      public void handle( HttpExchange httpExchange ) throws IOException {
-        httpExchange.sendResponseHeaders( 204, 0 );
-        httpExchange.close();
-      }
-    } );
+    httpServer.createContext( "/", httpHandler );
     httpServer.start();
   }
 
+  private HttpHandler get204AnswerHandler() {
+    return httpExchange -> {
+      httpExchange.sendResponseHeaders( 204, 0 );
+      httpExchange.close();
+    };
+  }
+
+  private HttpHandler getEncodingCheckingHandler( String expectedEncoding ) {
+    return httpExchange -> {
+      Assert.assertTrue( checkEncoding( expectedEncoding, httpExchange.getRequestBody() ) );
+      httpExchange.sendResponseHeaders( 200, 0 );
+      httpExchange.close();
+    };
+  }
+
+  private boolean checkEncoding( String expectedEncoding, InputStream inputStream )  {
+  try {
+
+     byte[] receivedBytes = ByteStreams.toByteArray( inputStream );
+
+    String str1 = new String( receivedBytes, "UTF-8");
+    String str2 = new String( receivedBytes, "UTF-16");
+    String str3 = new String( receivedBytes, "ISO-8859-2");
+    System.out.println( guessCharset( new ByteArrayInputStream( receivedBytes )));
+     System.out.println( str1 );
+     System.out.println( str2 );
+     System.out.println( str3 );
+    System.out.println("----------------");
+     System.out.println( URLDecoder.decode( str1, "UTF-8") );
+     System.out.println( URLDecoder.decode( str1, "UTF-16") );
+     System.out.println( URLDecoder.decode( str1, "ISO-8859-2") );
+    System.out.println("----------------");
+    System.out.println( URLDecoder.decode( str2, "UTF-8") );
+    System.out.println( URLDecoder.decode( str2, "UTF-16") );
+    System.out.println( URLDecoder.decode( str2, "ISO-8859-2") );
+    System.out.println("----------------");
+    System.out.println( URLDecoder.decode( str3, "UTF-8") );
+    System.out.println( URLDecoder.decode( str3, "UTF-16") );
+    System.out.println( URLDecoder.decode( str3, "ISO-8859-2") );
+
+   } catch ( IOException e ) {
+     fail( "IO Error" );
+   }
+
+   return true;
+  }
+
+  public static Charset guessCharset( InputStream is) throws IOException {
+    return Charset.forName( new TikaEncodingDetector().guessEncoding( is ));
+  }
 }

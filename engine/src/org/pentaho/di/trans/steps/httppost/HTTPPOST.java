@@ -40,6 +40,7 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.json.simple.JSONObject;
 import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.Const;
@@ -115,23 +116,26 @@ public class HTTPPOST extends BaseStep implements StepInterface {
       if ( !Utils.isEmpty( data.realProxyHost ) ) {
         hostConfiguration.setProxy( data.realProxyHost, data.realProxyPort );
       }
+      hostConfiguration.getParams().setParameter("http.protocol.content-charset", data.realEncoding );
       // Specify content type and encoding
       // If content encoding is not explicitly specified
       // ISO-8859-1 is assumed by the POSTMethod
-      if ( !data.contentTypeHeaderOverwrite ) { // can be overwritten now
-        if ( Utils.isEmpty( data.realEncoding ) ) {
-          post.setRequestHeader( CONTENT_TYPE, CONTENT_TYPE_TEXT_XML );
-          if ( isDebug() ) {
-            logDebug( BaseMessages.getString( PKG, "HTTPPOST.Log.HeaderValue", CONTENT_TYPE, CONTENT_TYPE_TEXT_XML ) );
-          }
-        } else {
-          post.setRequestHeader( CONTENT_TYPE, CONTENT_TYPE_TEXT_XML + "; " + data.realEncoding );
-          if ( isDebug() ) {
-            logDebug( BaseMessages.getString( PKG, "HTTPPOST.Log.HeaderValue", CONTENT_TYPE, CONTENT_TYPE_TEXT_XML
-                + "; " + data.realEncoding ) );
-          }
-        }
-      }
+//      if ( !data.contentTypeHeaderOverwrite ) { // can be overwritten now
+//        if ( Utils.isEmpty( data.realEncoding ) ) {
+//          post.setRequestHeader( CONTENT_TYPE, CONTENT_TYPE_TEXT_XML );
+//          if ( isDebug() ) {
+//            logDebug( BaseMessages.getString( PKG, "HTTPPOST.Log.HeaderValue", CONTENT_TYPE, CONTENT_TYPE_TEXT_XML ) );
+//          }
+//        } else {
+//          post.setRequestHeader( CONTENT_TYPE, CONTENT_TYPE_TEXT_XML + "; " + data.realEncoding );
+//          if ( isDebug() ) {
+//            logDebug( BaseMessages.getString( PKG, "HTTPPOST.Log.HeaderValue", CONTENT_TYPE, CONTENT_TYPE_TEXT_XML
+//                + "; " + data.realEncoding ) );
+//          }
+//        }
+//      }
+
+      post.setRequestHeader( "Content-Type", "application/x-www-form-url-encoded; charset=" + data.realEncoding );
 
       // HEADER PARAMETERS
       if ( data.useHeaderParameters ) {
@@ -156,7 +160,9 @@ public class HTTPPOST extends BaseStep implements StepInterface {
                 data.inputRowMeta.getString( rowData, data.body_parameters_nrs[i] ) ) );
           }
         }
-        post.setRequestBody( data.bodyParameters );
+//        post.setRequestBody( data.bodyParameters );
+        .formatNameValuePair
+        post.setRequestEntity( new StringRequestEntity("test строка с рус END", CONTENT_TYPE_TEXT_XML, data.realEncoding));
       }
 
       // QUERY PARAMETERS
@@ -195,6 +201,14 @@ public class HTTPPOST extends BaseStep implements StepInterface {
           post.setRequestEntity( new InputStreamRequestEntity( new ByteArrayInputStream( bytes ), bytes.length ) );
         }
       }
+      // Set request body encoding
+      System.out.println(post.getParams().getContentCharset());
+      System.out.println(post.getParams().getUriCharset());
+      post.getParams().setContentCharset(data.realEncoding);
+//      post.getParams().setUriCharset(data.realEncoding);
+      System.out.println(post.getParams().getContentCharset());
+      System.out.println(post.getParams().getUriCharset());
+//      setParameter( "http.protocol.content-charset", data.realEncoding );
 
       // Execute request
       //
@@ -316,6 +330,7 @@ public class HTTPPOST extends BaseStep implements StepInterface {
 
   protected int requestStatusCode( PostMethod post, HostConfiguration hostConfiguration, HttpClient httpPostClient ) throws IOException {
     return httpPostClient.executeMethod( hostConfiguration, post );
+//    return httpPostClient.executeMethod( post );
   }
 
   protected InputStreamReader openStream( String encoding, PostMethod post ) throws Exception {
