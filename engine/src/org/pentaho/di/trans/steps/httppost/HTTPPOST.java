@@ -22,13 +22,10 @@
 
 package org.pentaho.di.trans.steps.httppost;
 
-import java.io.IOException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 
 
+import java.net.URLEncoder;
 import java.net.UnknownHostException;
 
 import org.apache.commons.httpclient.Credentials;
@@ -40,6 +37,7 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.json.simple.JSONObject;
 import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.Const;
@@ -70,6 +68,7 @@ public class HTTPPOST extends BaseStep implements StepInterface {
 
   private static final String CONTENT_TYPE = "Content-type";
   private static final String CONTENT_TYPE_TEXT_XML = "text/xml";
+  private static final String FORM_URL_ENCODED = "application/x-www-form-urlencoded";
 
   private HTTPPOSTMeta meta;
   private HTTPPOSTData data;
@@ -157,7 +156,12 @@ public class HTTPPOST extends BaseStep implements StepInterface {
           }
         }
         post.setRequestBody( data.bodyParameters );
+        String bodyParamsStr = getRequestBodyParamsAsStr( data.bodyParameters, data.realEncoding );
+        StringRequestEntity bodyParams = new StringRequestEntity( bodyParamsStr, FORM_URL_ENCODED, data.realEncoding );
+        post.setRequestEntity( bodyParams );
+//        post.setRequestEntity( new InputStreamRequestEntity( new ByteArrayInputStream( bytes ), bytes.length ) );
       }
+
 
       // QUERY PARAMETERS
       if ( data.useQueryParameters ) {
@@ -195,6 +199,8 @@ public class HTTPPOST extends BaseStep implements StepInterface {
           post.setRequestEntity( new InputStreamRequestEntity( new ByteArrayInputStream( bytes ), bytes.length ) );
         }
       }
+
+      post.getParams().setContentCharset( data.realEncoding );
 
       // Execute request
       //
@@ -483,6 +489,29 @@ public class HTTPPOST extends BaseStep implements StepInterface {
     }
 
     return true;
+  }
+
+  private String getRequestBodyParamsAsStr( NameValuePair[] pairs, String charset ) throws KettleException {
+    StringBuffer buf = new StringBuffer();
+    try {
+      for ( int i = 0; i < pairs.length; ++i ) {
+        NameValuePair pair = pairs[i];
+        if ( pair.getName() != null ) {
+          if ( i > 0 ) {
+            buf.append( "&" );
+          }
+
+          buf.append( URLEncoder.encode( pair.getName(), charset ) );
+          buf.append( "=" );
+          if ( pair.getValue() != null ) {
+            buf.append( URLEncoder.encode( pair.getValue(), charset ) );
+          }
+        }
+      }
+      return buf.toString();
+    } catch ( UnsupportedEncodingException e ) {
+      throw new KettleException();
+    }
   }
 
   public boolean init( StepMetaInterface smi, StepDataInterface sdi ) {
