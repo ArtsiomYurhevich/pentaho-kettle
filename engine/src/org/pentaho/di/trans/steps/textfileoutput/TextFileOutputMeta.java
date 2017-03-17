@@ -1143,7 +1143,7 @@ public class TextFileOutputMeta extends BaseStepMeta implements StepMetaInterfac
       rep.saveStepAttribute( id_transformation, id_step, "format", fileFormat );
       rep.saveStepAttribute( id_transformation, id_step, "compression", fileCompression );
       rep.saveStepAttribute( id_transformation, id_step, "encoding", encoding );
-      saveSourceRep( rep, id_transformation, id_step, fileName );
+      saveSourceRep( rep, id_transformation, id_step, metaStore, fileName );
       rep.saveStepAttribute( id_transformation, id_step, "file_is_command", fileAsCommand );
       rep.saveStepAttribute( id_transformation, id_step, "file_servlet_output", servletOutput );
       rep.saveStepAttribute( id_transformation, id_step, "do_not_open_new_file_init", doNotOpenNewFileInit );
@@ -1309,7 +1309,7 @@ public class TextFileOutputMeta extends BaseStepMeta implements StepMetaInterfac
     return rep.getStepAttributeString( id_step, "file_name" );
   }
 
-  protected void saveSourceRep( Repository rep, ObjectId id_transformation, ObjectId id_step, String value )
+  protected void saveSourceRep( Repository rep, ObjectId id_transformation, ObjectId id_step, IMetaStore metaStore, String value)
     throws KettleException {
     rep.saveStepAttribute( id_transformation, id_step, "file_name", fileName );
   }
