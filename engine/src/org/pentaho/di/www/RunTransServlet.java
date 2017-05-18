@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -247,15 +247,18 @@ public class RunTransServlet extends BaseHttpServlet implements CartePluginInter
       String message = "Transformation '" + trans.getName() + "' was added to the list with id " + carteObjectId;
       logBasic( message );
 
-      //
       try {
         // Execute the transformation...
         //
         trans.execute( null );
 
-        WebResult webResult = new WebResult( WebResult.STRING_OK, "Transformation started", carteObjectId );
-        out.println( webResult.getXML() );
-        out.flush();
+        if ( trans.getSteps().stream().anyMatch( step -> step.meta.passDataToServletOutput() ) ) {
+          trans.waitUntilFinished();
+        } else {
+          WebResult webResult = new WebResult( WebResult.STRING_OK, "Transformation started", carteObjectId );
+          out.println( webResult.getXML() );
+          out.flush();
+        }
 
       } catch ( Exception executionException ) {
         String logging = KettleLogStore.getAppender().getBuffer( trans.getLogChannelId(), false ).toString();

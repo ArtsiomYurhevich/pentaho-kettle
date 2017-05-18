@@ -718,4 +718,14 @@ public interface StepMetaInterface {
   public default boolean cleanAfterHopFromRemove() {
     return false;
   }
+
+  /**
+   * True if the step passes it's result data straight to the servlet output. See exposing Kettle data over a web service
+   * <a href="http://wiki.pentaho.com/display/EAI/PDI+data+over+web+services">http://wiki.pentaho.com/display/EAI/PDI+data+over+web+services</a>
+   *
+   * @return True if the step passes it's result data straight to the servlet output, false otherwise
+   */
+  default boolean passDataToServletOutput() {
+    return false;
+  }
 }
