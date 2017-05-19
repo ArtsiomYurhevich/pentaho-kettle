@@ -22,6 +22,7 @@
 
 package org.pentaho.di.ui.repository.kdr;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -200,12 +201,15 @@ public class KettleDatabaseRepositoryDialog implements RepositoryDialogInterface
         getDatabaseDialog().setDatabaseMeta( databaseMeta );
 
         if ( getDatabaseDialog().open() != null ) {
-          repositories.addDatabase( getDatabaseDialog().getDatabaseMeta() );
-          fillConnections();
+          if ( !isDatabaseWithNameExist( databaseMeta, true ) ) {
+            repositories.addDatabase( databaseMeta );
+            fillConnections();
 
-          int idx = repositories.indexOfDatabase( getDatabaseDialog().getDatabaseMeta() );
-          wConnection.select( idx );
-
+            int idx = repositories.indexOfDatabase( getDatabaseDialog().getDatabaseMeta() );
+            wConnection.select( idx );
+          } else {
+            DatabaseDialog.showDatabaseExistsDialog( shell, databaseMeta );
+          }
         }
       }
     } );
@@ -214,12 +218,19 @@ public class KettleDatabaseRepositoryDialog implements RepositoryDialogInterface
     weConnection.addSelectionListener( new SelectionAdapter() {
       public void widgetSelected( SelectionEvent arg0 ) {
         DatabaseMeta databaseMeta = repositories.searchDatabase( wConnection.getText() );
+        String originalName = databaseMeta.getName();
         if ( databaseMeta != null ) {
           getDatabaseDialog().setDatabaseMeta( databaseMeta );
           if ( getDatabaseDialog().open() != null ) {
-            fillConnections();
-            int idx = repositories.indexOfDatabase( getDatabaseDialog().getDatabaseMeta() );
-            wConnection.select( idx );
+            if ( !isDatabaseWithNameExist( databaseMeta, false ) ) {
+              fillConnections();
+              int idx = repositories.indexOfDatabase( databaseMeta );
+              wConnection.select( idx );
+            } else {
+              DatabaseDialog.showDatabaseExistsDialog( shell, databaseMeta );
+              databaseMeta.setName( originalName );
+              databaseMeta.setDisplayName( originalName );
+            }
           }
         }
       }
@@ -640,5 +651,18 @@ public class KettleDatabaseRepositoryDialog implements RepositoryDialogInterface
     box.setMessage( BaseMessages.getString( PKG, "RepositoryDialog.Dialog.ErrorIdExist.Message", name ) );
     box.setText( BaseMessages.getString( PKG, "RepositoryDialog.Dialog.Error.Title" ) );
     box.open();
+  }
+
+  @VisibleForTesting
+  boolean isDatabaseWithNameExist( DatabaseMeta databaseMeta, boolean isNew ) {
+    for ( int i = 0; i < repositories.nrDatabases(); i++ ) {
+      final DatabaseMeta iterDatabase = repositories.getDatabase( i );
+      if ( iterDatabase.getName().trim().equalsIgnoreCase( databaseMeta.getName().trim() ) ) {
+        if ( isNew || databaseMeta != iterDatabase ) { // do not check the same instance
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
