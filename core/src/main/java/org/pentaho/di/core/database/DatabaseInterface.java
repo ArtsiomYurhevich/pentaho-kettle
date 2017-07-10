@@ -633,6 +633,19 @@ public interface DatabaseInterface extends Cloneable {
   public void setPreserveReservedCase( boolean b );
 
   /**
+   * @return true if using strict number(38) interpretation ( Oracle specific )
+   */
+  default boolean strictBigNumberInterpretation() {
+    return false;
+  }
+
+  /**
+   * @param  strictNumberInterpretation true if use strict number(38) interpretation ( Oracle specific )
+   */
+  default void setStrictBigNumberInterpretation( boolean strictNumberInterpretation ) {
+  }
+
+  /**
    * @return true if the database defaults to naming tables and fields in upper case. True for most databases except for
    *         stuborn stuff like Postgres ;-)
    */

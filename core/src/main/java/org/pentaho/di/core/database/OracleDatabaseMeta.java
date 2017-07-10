@@ -38,6 +38,11 @@ import org.pentaho.di.core.variables.VariableSpace;
  */
 
 public class OracleDatabaseMeta extends BaseDatabaseMeta implements DatabaseInterface {
+
+  private static final String STRICT_BIGNUMBER_INTERPRETATION = "STRICT_BIGNUMBER_INTERPRETATION";
+
+  private boolean strictBigNumberInterpretation = false;
+
   @Override
   public int[] getAccessTypeList() {
     return new int[] {
@@ -660,5 +665,21 @@ public class OracleDatabaseMeta extends BaseDatabaseMeta implements DatabaseInte
   @Override
   public SqlScriptParser createSqlScriptParser() {
     return new SqlScriptParser( false );
+  }
+
+  /**
+   * @return true if using strict number(38) interpretation
+   */
+  @Override
+  public boolean strictBigNumberInterpretation() {
+    return "Y".equalsIgnoreCase( getAttributes().getProperty( STRICT_BIGNUMBER_INTERPRETATION, "N" ) );
+  }
+
+  /**
+   * @param  strictBigNumberInterpretation true if use strict number(38) interpretation
+   */
+  @Override
+  public void setStrictBigNumberInterpretation( boolean strictBigNumberInterpretation ) {
+    getAttributes().setProperty( STRICT_BIGNUMBER_INTERPRETATION, strictBigNumberInterpretation ? "Y" : "N" );
   }
 }

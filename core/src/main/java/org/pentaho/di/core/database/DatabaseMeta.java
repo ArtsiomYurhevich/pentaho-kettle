@@ -2321,10 +2321,24 @@ public class DatabaseMeta extends SharedObjectBase implements Cloneable, XMLInte
   }
 
   /**
+   * @return true if using strict number(38) interpretation ( Oracle specific )
+   */
+  public boolean strictBigNumberInterpretation() {
+    return databaseInterface.strictBigNumberInterpretation();
+  }
+
+  /**
    * @return true if reserved words' case should be preserved
    */
   public void setPreserveReservedCase( boolean b ) {
     databaseInterface.setPreserveReservedCase( b );
+  }
+
+  /**
+   * @param  strictNumberInterpretation true if use strict number(38) interpretation ( Oracle specific )
+   */
+  public void setStrictBigNumberInterpretation( boolean strictNumberInterpretation  ) {
+    databaseInterface.setStrictBigNumberInterpretation( strictNumberInterpretation );
   }
 
   /**

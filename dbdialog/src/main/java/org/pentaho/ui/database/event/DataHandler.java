@@ -204,6 +204,8 @@ public class DataHandler extends AbstractXulEventHandler {
 
   XulCheckbox preserveReservedCaseCheck;
 
+  XulCheckbox strictBigNumberInterpretaion;
+
   XulCheckbox useIntegratedSecurityCheck;
 
   XulTextbox preferredSchemaName;
@@ -690,6 +692,10 @@ public class DataHandler extends AbstractXulEventHandler {
       meta.setPreserveReservedCase( preserveReservedCaseCheck.isChecked() );
     }
 
+    if ( strictBigNumberInterpretaion != null ) {
+      meta.setStrictBigNumberInterpretation( strictBigNumberInterpretaion.isChecked() );
+    }
+
     if ( preferredSchemaName != null ) {
       meta.setPreferredSchemaName( preferredSchemaName.getValue() );
     }
@@ -831,7 +837,6 @@ public class DataHandler extends AbstractXulEventHandler {
     setOptionsData( meta.getExtraOptions() );
 
     // Advanced panel settings:
-
     if ( supportBooleanDataType != null ) {
       supportBooleanDataType.setChecked( meta.supportsBooleanDataType() );
     }
@@ -854,6 +859,15 @@ public class DataHandler extends AbstractXulEventHandler {
 
     if ( preserveReservedCaseCheck != null ) {
       preserveReservedCaseCheck.setChecked( meta.preserveReservedCase() );
+    }
+
+    if ( strictBigNumberInterpretaion != null ) {
+      if ( dataTablespaceBox != null ) {
+        strictBigNumberInterpretaion.setVisible( true );
+      } else {
+        strictBigNumberInterpretaion.setVisible( false );
+      }
+      strictBigNumberInterpretaion.setChecked(meta.strictBigNumberInterpretation());
     }
 
     if ( preferredSchemaName != null ) {
@@ -1320,6 +1334,15 @@ public class DataHandler extends AbstractXulEventHandler {
       indexTablespaceBox.setValue( meta.getIndexTablespace() );
     }
 
+    if ( strictBigNumberInterpretaion != null ) {
+      if ( dataTablespaceBox != null) {
+        strictBigNumberInterpretaion.setVisible( true );
+      } else {
+        strictBigNumberInterpretaion.setVisible( false );
+      }
+      strictBigNumberInterpretaion.setChecked(meta.strictBigNumberInterpretation());
+    }
+
     if ( serverInstanceBox != null ) {
       serverInstanceBox.setValue( meta.getSQLServerInstance() );
     }
@@ -1421,6 +1444,7 @@ public class DataHandler extends AbstractXulEventHandler {
     lowerCaseIdentifiersCheck = (XulCheckbox) document.getElementById( "force-lower-case-check" );
     upperCaseIdentifiersCheck = (XulCheckbox) document.getElementById( "force-upper-case-check" );
     preserveReservedCaseCheck = (XulCheckbox) document.getElementById( "preserve-reserved-case" );
+    strictBigNumberInterpretaion = (XulCheckbox) document.getElementById( "strict-bignum-interpretation" );
     preferredSchemaName = (XulTextbox) document.getElementById( "preferred-schema-name-text" );
     sqlBox = (XulTextbox) document.getElementById( "sql-text" );
     useIntegratedSecurityCheck = (XulCheckbox) document.getElementById( "use-integrated-security-check" );
