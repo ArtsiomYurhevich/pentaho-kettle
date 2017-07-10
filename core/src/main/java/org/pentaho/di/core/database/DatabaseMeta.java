@@ -2320,11 +2320,19 @@ public class DatabaseMeta extends SharedObjectBase implements Cloneable, XMLInte
     return databaseInterface.preserveReservedCase();
   }
 
+  public boolean strictBigNumberInterpretation() {
+    return databaseInterface.strictBigNumberInterpretation();
+  }
+
   /**
    * @return true if reserved words' case should be preserved
    */
   public void setPreserveReservedCase( boolean b ) {
     databaseInterface.setPreserveReservedCase( b );
+  }
+
+  public void setStrictBigNumberInterpretation( boolean b ) {
+    databaseInterface.setStrictBigNumberInterpretation( b );
   }
 
   /**

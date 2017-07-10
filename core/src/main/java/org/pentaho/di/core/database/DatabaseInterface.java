@@ -633,6 +633,20 @@ public interface DatabaseInterface extends Cloneable {
   public void setPreserveReservedCase( boolean b );
 
   /**
+   * @return true if reserved words' case should be preserved
+   */
+  default boolean strictBigNumberInterpretation() {
+    return false;
+  }
+
+  /**
+   * @param b
+   *          Set to true if reserved words' case should be preserved
+   */
+  default void setStrictBigNumberInterpretation( boolean b ) {
+  }
+
+  /**
    * @return true if the database defaults to naming tables and fields in upper case. True for most databases except for
    *         stuborn stuff like Postgres ;-)
    */

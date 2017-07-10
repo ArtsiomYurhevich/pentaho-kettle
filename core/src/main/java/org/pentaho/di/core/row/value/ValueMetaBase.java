@@ -4727,8 +4727,12 @@ public class ValueMetaBase implements ValueMetaInterface {
           }
 
           if ( databaseMeta.getDatabaseInterface() instanceof OracleDatabaseMeta ) {
-            if ( precision == 0 && length == 38 ) {
-              valtype = ValueMetaInterface.TYPE_INTEGER;
+            if ( precision <= 0 ) {
+              if ( length - precision <= 18 ) {
+                valtype = ValueMetaInterface.TYPE_INTEGER;
+              } else {
+                valtype = databaseMeta.strictBigNumberInterpretation() ? TYPE_BIGNUMBER : TYPE_INTEGER;
+              }
             }
             if ( precision <= 0 && length <= 0 ) {
               // undefined size: BIGNUMBER,
