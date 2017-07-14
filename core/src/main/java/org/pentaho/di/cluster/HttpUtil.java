@@ -22,6 +22,7 @@
 
 package org.pentaho.di.cluster;
 
+import net.jpountz.lz4.LZ4Factory;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.Header;
@@ -52,9 +53,12 @@ import java.util.zip.GZIPOutputStream;
 
 public class HttpUtil {
 
+  static LZ4Factory lz4Factory = LZ4Factory.safeInstance();
+
   public static final int ZIP_BUFFER_SIZE = 8192;
   private static final String PROTOCOL_UNSECURE = "http";
   private static final String PROTOCOL_SECURE = "https";
+  private static final int DEFAULT_LOGGING_SIZE = 1256;
 
   private static HttpClient getClient( VariableSpace space, String hostname, String port, String webAppName,
       String username, String password, String proxyHostname, String proxyPort, String nonProxyHosts ) {
@@ -235,61 +239,39 @@ public class HttpUtil {
     if ( loggingString64 == null || loggingString64.isEmpty() ) {
       return "";
     }
-    StringWriter writer = new StringWriter();
     // base 64 decode
     byte[] bytes64 = Base64.decodeBase64( loggingString64.getBytes() );
     // unzip to string encoding-wise
-    ByteArrayInputStream zip = new ByteArrayInputStream( bytes64 );
+    byte[] unzippedBytes = new byte[DEFAULT_LOGGING_SIZE];
 
-    GZIPInputStream unzip = null;
-    InputStreamReader reader = null;
-    BufferedInputStream in = null;
-    try {
-      unzip = new GZIPInputStream( zip, HttpUtil.ZIP_BUFFER_SIZE );
-      in = new BufferedInputStream( unzip, HttpUtil.ZIP_BUFFER_SIZE );
-      // PDI-4325 originally used xml encoding in servlet
-      reader = new InputStreamReader( in, Const.XML_ENCODING );
-      writer = new StringWriter();
+    lz4Factory.safeDecompressor().decompress( bytes64, unzippedBytes);
 
-      // use same buffer size
-      char[] buff = new char[HttpUtil.ZIP_BUFFER_SIZE];
-      for ( int length = 0; ( length = reader.read( buff ) ) > 0; ) {
-        writer.write( buff, 0, length );
-      }
-    } finally {
-      // close resources
-      if ( reader != null ) {
-        try {
-          reader.close();
-        } catch ( IOException e ) {
-          // Suppress
-        }
-      }
-      if ( in != null ) {
-        try {
-          in.close();
-        } catch ( IOException e ) {
-          // Suppress
-        }
-      }
-      if ( unzip != null ) {
-        try {
-          unzip.close();
-        } catch ( IOException e ) {
-          // Suppress
-        }
-      }
+    return new String( unzippedBytes, Const.XML_ENCODING );
+  }
+
+  public static String decodeBase64ZippedString( String loggingString64, int uncompressedSize ) throws IOException {
+    if ( loggingString64 == null || loggingString64.isEmpty() ) {
+      return "";
     }
-    return writer.toString();
+    // base 64 decode
+    byte[] bytes64 = Base64.decodeBase64( loggingString64.getBytes() );
+    // unzip to string encoding-wise
+    byte[] unzippedBytes = new byte[uncompressedSize];
+
+    lz4Factory.fastDecompressor().decompress( bytes64, unzippedBytes);
+
+    return new String( unzippedBytes, Const.XML_ENCODING );
   }
 
   public static String encodeBase64ZippedString( String in ) throws IOException {
-    Charset charset = Charset.forName( Const.XML_ENCODING );
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    GZIPOutputStream gzos = new GZIPOutputStream( baos );
-    gzos.write( in.getBytes( charset ) );
-    gzos.close();
+    byte[] bytes = lz4Factory.highCompressor().compress( in.getBytes( Const.XML_ENCODING ) );
+//    Charset charset = Charset.forName( Const.XML_ENCODING );
+//    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//    GZIPOutputStream gzos = new GZIPOutputStream( baos );
+//    gzos.write( in.getBytes( charset ) );
+//    gzos.close();
 
-    return new String( Base64.encodeBase64( baos.toByteArray() ) );
+//    return new String( Base64.encodeBase64( baos.toByteArray() ) );
+    return new String( Base64.encodeBase64( bytes ) );
   }
 }

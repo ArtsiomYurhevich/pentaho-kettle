@@ -41,6 +41,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
 public class SlaveServerTransStatus {
+
   public static final String XML_TAG = "transstatus";
 
   private String id;
@@ -52,6 +53,16 @@ public class SlaveServerTransStatus {
   private String errorDescription;
 
   private String loggingString;
+
+  public int getLoggingUncompressedSize() {
+    return loggingUncompressedSize;
+  }
+
+  public void setLoggingUncompressedSize( int loggingUncompressedSize ) {
+    this.loggingUncompressedSize = loggingUncompressedSize;
+  }
+
+  private int loggingUncompressedSize;
 
   private int firstLoggingLineNr;
 
@@ -102,6 +113,7 @@ public class SlaveServerTransStatus {
 
     xml.append( "  " ).append( XMLHandler.addTagValue( "first_log_line_nr", firstLoggingLineNr ) );
     xml.append( "  " ).append( XMLHandler.addTagValue( "last_log_line_nr", lastLoggingLineNr ) );
+    xml.append( "  " ).append( XMLHandler.addTagValue( "logging_uncompressed_size", loggingUncompressedSize ) );
 
     if ( result != null ) {
       String resultXML = sendResultXmlWithStatus ? result.getXML() : result.getBasicXml();
@@ -134,6 +146,7 @@ public class SlaveServerTransStatus {
 
     firstLoggingLineNr = Const.toInt( XMLHandler.getTagValue( transStatusNode, "first_log_line_nr" ), 0 );
     lastLoggingLineNr = Const.toInt( XMLHandler.getTagValue( transStatusNode, "last_log_line_nr" ), 0 );
+    loggingUncompressedSize = Const.toInt( XMLHandler.getTagValue( transStatusNode, "logging_uncompressed_size" ), 0 );
 
     String loggingString64 = XMLHandler.getTagValue( transStatusNode, "logging_string" );
 
@@ -143,7 +156,8 @@ public class SlaveServerTransStatus {
       String dataString64 =
         loggingString64.substring( "<![CDATA[".length(), loggingString64.length() - "]]>".length() );
       try {
-        loggingString = HttpUtil.decodeBase64ZippedString( dataString64 );
+        loggingString = loggingUncompressedSize != 0 ? HttpUtil.decodeBase64ZippedString( dataString64, loggingUncompressedSize ) :
+        HttpUtil.decodeBase64ZippedString( dataString64 );
       } catch ( IOException e ) {
         loggingString =
           "Unable to decode logging from remote server : " + e.toString() + Const.CR + Const.getStackTracker( e );
