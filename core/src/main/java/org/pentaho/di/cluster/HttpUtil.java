@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -23,6 +23,8 @@
 package org.pentaho.di.cluster;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Base64InputStream;
+import org.apache.commons.codec.binary.Base64OutputStream;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
@@ -57,7 +59,8 @@ public class HttpUtil {
   private static final String PROTOCOL_SECURE = "https";
 
   private static HttpClient getClient( VariableSpace space, String hostname, String port, String webAppName,
-      String username, String password, String proxyHostname, String proxyPort, String nonProxyHosts ) {
+                                       String username, String password, String proxyHostname, String proxyPort,
+                                       String nonProxyHosts ) {
 
     HttpClient client = SlaveConnectionManager.getInstance().createHttpClient();
     addCredentials( client, space, hostname, port, webAppName, username, password );
@@ -67,13 +70,15 @@ public class HttpUtil {
   }
 
   public static PostMethod execService( VariableSpace space, String hostname, String port, String webAppName,
-      String urlString, String username, String password, String proxyHostname, String proxyPort,
-      String nonProxyHosts, Iterable<Header> headers, Map<String, Object> parameters, Map<String, String> arguments )
-      throws Exception {
+                                        String urlString, String username, String password, String proxyHostname,
+                                        String proxyPort,
+                                        String nonProxyHosts, Iterable<Header> headers, Map<String, Object> parameters,
+                                        Map<String, String> arguments )
+    throws Exception {
 
     HttpClient
-        client =
-        getClient( space, hostname, port, webAppName, username, password, proxyHostname, proxyPort, nonProxyHosts );
+      client =
+      getClient( space, hostname, port, webAppName, username, password, proxyHostname, proxyPort, nonProxyHosts );
 
     client.getHttpConnectionManager().getParams().setConnectionTimeout( 0 );
     client.getHttpConnectionManager().getParams().setSoTimeout( 0 );
@@ -99,12 +104,13 @@ public class HttpUtil {
   }
 
   public static String execService( VariableSpace space, String hostname, String port, String webAppName,
-      String serviceAndArguments, String username, String password, String proxyHostname, String proxyPort,
-      String nonProxyHosts, boolean isSecure ) throws Exception {
+                                    String serviceAndArguments, String username, String password, String proxyHostname,
+                                    String proxyPort,
+                                    String nonProxyHosts, boolean isSecure ) throws Exception {
 
     HttpClient
-        client =
-        getClient( space, hostname, port, webAppName, username, password, proxyHostname, proxyPort, nonProxyHosts );
+      client =
+      getClient( space, hostname, port, webAppName, username, password, proxyHostname, proxyPort, nonProxyHosts );
 
     String urlString = constructUrl( space, hostname, port, webAppName, serviceAndArguments, isSecure );
     HttpMethod method = new GetMethod( urlString );
@@ -119,10 +125,11 @@ public class HttpUtil {
   }
 
   public static String execService( VariableSpace space, String hostname, String port, String webAppName,
-      String serviceAndArguments, String username, String password, String proxyHostname, String proxyPort,
-      String nonProxyHosts ) throws Exception {
+                                    String serviceAndArguments, String username, String password, String proxyHostname,
+                                    String proxyPort,
+                                    String nonProxyHosts ) throws Exception {
     return execService( space, hostname, port, webAppName, serviceAndArguments, username, password, proxyHostname,
-        proxyPort, nonProxyHosts, false );
+      proxyPort, nonProxyHosts, false );
   }
 
   public static int execMethod( HttpClient client, HttpMethod method ) throws Exception {
@@ -131,7 +138,8 @@ public class HttpUtil {
       result = client.executeMethod( method );
     } catch ( Exception e ) {
       throw new KettleException(
-          "You don't seem to be getting a connection to the server. Check the host and port you're using and make sure the sever is up and running." );
+        "You don't seem to be getting a connection to the server. Check the host and port you're using and make sure "
+          + "the sever is up and running." );
     }
 
     if ( result == 500 ) {
@@ -140,7 +148,7 @@ public class HttpUtil {
 
     if ( result == 401 ) {
       throw new KettleException(
-          "Nice try-but we couldn't log you in. Check your username and password and try again." );
+        "Nice try-but we couldn't log you in. Check your username and password and try again." );
     }
 
     if ( result != 200 ) {
@@ -162,12 +170,13 @@ public class HttpUtil {
    * @throws UnsupportedEncodingException
    */
   public static String constructUrl( VariableSpace space, String hostname, String port, String webAppName,
-    String serviceAndArguments ) throws UnsupportedEncodingException {
+                                     String serviceAndArguments ) throws UnsupportedEncodingException {
     return constructUrl( space, hostname, port, webAppName, serviceAndArguments, false );
   }
 
   public static String constructUrl( VariableSpace space, String hostname, String port, String webAppName,
-      String serviceAndArguments, boolean isSecure ) throws UnsupportedEncodingException {
+                                     String serviceAndArguments, boolean isSecure )
+    throws UnsupportedEncodingException {
     String realHostname = space.environmentSubstitute( hostname );
     if ( !StringUtils.isEmpty( webAppName ) ) {
       serviceAndArguments = "/" + space.environmentSubstitute( webAppName ) + serviceAndArguments;
@@ -188,7 +197,7 @@ public class HttpUtil {
   }
 
   public static void addProxy( HttpClient client, VariableSpace space, String hostname, String proxyHostname,
-    String proxyPort, String nonProxyHosts ) {
+                               String proxyPort, String nonProxyHosts ) {
     String host = space.environmentSubstitute( hostname );
     String phost = space.environmentSubstitute( proxyHostname );
     String pport = space.environmentSubstitute( proxyPort );
@@ -206,7 +215,7 @@ public class HttpUtil {
   }
 
   public static void addCredentials( HttpClient client, VariableSpace space, String hostname, String port,
-    String webAppName, String username, String password ) {
+                                     String webAppName, String username, String password ) {
     if ( StringUtils.isEmpty( webAppName ) ) {
       client.getState().setCredentials(
         new AuthScope( space.environmentSubstitute( hostname ), Const.toInt(
@@ -226,8 +235,7 @@ public class HttpUtil {
    * Base 64 decode, unzip and extract text using {@link Const#XML_ENCODING} predefined charset value for byte-wise
    * multi-byte character handling.
    *
-   * @param loggingString64
-   *          base64 zip archive string representation
+   * @param loggingString64 base64 zip archive string representation
    * @return text from zip archive
    * @throws IOException
    */
@@ -285,11 +293,11 @@ public class HttpUtil {
 
   public static String encodeBase64ZippedString( String in ) throws IOException {
     Charset charset = Charset.forName( Const.XML_ENCODING );
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    GZIPOutputStream gzos = new GZIPOutputStream( baos );
-    gzos.write( in.getBytes( charset ) );
-    gzos.close();
-
-    return new String( Base64.encodeBase64( baos.toByteArray() ) );
+    ByteArrayOutputStream baos = new ByteArrayOutputStream( 1024 );
+    try ( Base64OutputStream base64OutputStream = new Base64OutputStream( baos );
+          GZIPOutputStream gzos = new GZIPOutputStream( base64OutputStream ) ) {
+      gzos.write( in.getBytes( charset ) );
+    }
+    return baos.toString();
   }
 }
