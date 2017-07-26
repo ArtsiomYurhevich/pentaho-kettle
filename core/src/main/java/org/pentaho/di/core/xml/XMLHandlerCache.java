@@ -22,8 +22,12 @@
 
 package org.pentaho.di.core.xml;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
+//import java.util.Timer;
+//import java.util.TimerTask;
+//import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Singleton to help speed up lookups in an XML DOM tree.<br>
@@ -44,29 +48,43 @@ import java.util.Hashtable;
  * @since 22-Apr-2006
  */
 public class XMLHandlerCache {
-  public static final int MAX_NUMBER_OF_ENTRIES = 500;
+//  public static final int MAX_NUMBER_OF_ENTRIES = 500;
 
-  private static XMLHandlerCache cache;
+  private static XMLHandlerCache instance;
 
-  private Hashtable<XMLHandlerCacheEntry, Integer> hashtable;
-  private ArrayList<XMLHandlerCacheEntry> list;
+  Cache<XMLHandlerCacheEntry, Integer> cache;
 
-  private int cacheHits;
+//  private ConcurrentLinkedQueue<XMLHandlerCacheEntry> orderReferenceQueue;
+
+  private volatile int cacheHits;
+
+//  Timer timer;
 
   private XMLHandlerCache() {
-    hashtable = new Hashtable<XMLHandlerCacheEntry, Integer>( MAX_NUMBER_OF_ENTRIES );
-    list = new ArrayList<XMLHandlerCacheEntry>( MAX_NUMBER_OF_ENTRIES );
-
+    cache = CacheBuilder.newBuilder().weakKeys().build();
+//    orderReferenceQueue = new ConcurrentLinkedQueue<>();
+//    timer = new Timer( XMLHandlerCache.class.getName() + " checking cache size task" );
+//    timer.schedule( new TimerTask() {
+//      @Override public void run() {
+//        long momentSize = cache.size();
+//        if ( momentSize > MAX_NUMBER_OF_ENTRIES ) {
+//          for ( int i = 0; i < momentSize - MAX_NUMBER_OF_ENTRIES; i++ ) {
+//            XMLHandlerCacheEntry cacheEntry = orderReferenceQueue.poll();
+//            if ( cacheEntry != null ) {
+//              cache.invalidate( orderReferenceQueue.poll() );
+//            }
+//          }
+//        }
+//      }
+//    }, 0L, 30000L );
     cacheHits = 0;
   }
 
-  public static final synchronized XMLHandlerCache getInstance() {
-    if ( cache != null ) {
-      return cache;
+  public static synchronized XMLHandlerCache getInstance() {
+    if ( instance == null ) {
+      return instance = new XMLHandlerCache();
     }
-
-    cache = new XMLHandlerCache();
-    return cache;
+    return instance;
   }
 
   /**
@@ -75,20 +93,9 @@ public class XMLHandlerCache {
    * @param entry
    *          The cache entry to store
    */
-  public synchronized void storeCache( XMLHandlerCacheEntry entry, int lastChildNr ) {
-    hashtable.put( entry, Integer.valueOf( lastChildNr ) );
-    list.add( entry );
-
-    if ( list.size() > MAX_NUMBER_OF_ENTRIES ) {
-      // Simple: the oldest is the first in the list
-      XMLHandlerCacheEntry cacheEntry = list.get( 0 );
-
-      // Remove this one from the cache...
-      hashtable.remove( cacheEntry );
-
-      // Remove from the list
-      list.remove( 0 );
-    }
+  public void storeCache( XMLHandlerCacheEntry entry, int lastChildNr ) {
+    cache.put( entry, lastChildNr );
+//    orderReferenceQueue.add( entry );
   }
 
   /**
@@ -99,10 +106,10 @@ public class XMLHandlerCache {
    * @return the last child position or -1 if nothing was found.
    */
   public int getLastChildNr( XMLHandlerCacheEntry entry ) {
-    Integer lastChildNr = hashtable.get( entry );
+    Integer lastChildNr = cache.getIfPresent( entry );
     if ( lastChildNr != null ) {
       cacheHits++;
-      return lastChildNr.intValue();
+      return lastChildNr;
     }
     return -1;
   }
@@ -128,8 +135,8 @@ public class XMLHandlerCache {
    * Clears the cache
    *
    */
-  public synchronized void clear() {
-    this.hashtable.clear();
-    this.list.clear();
+  public void clear() {
+    cache.invalidateAll();
+//    orderReferenceQueue.clear();
   }
 }
