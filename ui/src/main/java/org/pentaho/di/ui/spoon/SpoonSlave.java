@@ -25,9 +25,7 @@ package org.pentaho.di.ui.spoon;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -104,11 +102,11 @@ public class SpoonSlave extends Composite implements TabItemInterface {
 
   public static final String STRING_SLAVE_LOG_TREE_NAME = "SLAVE_LOG : ";
 
+  private String currentLogText;
+
   private Shell shell;
   private Display display;
   private SlaveServer slaveServer;
-  private Map<String, Integer> lastLineMap;
-  private Map<String, String> loggingMap;
 
   private Spoon spoon;
 
@@ -266,9 +264,6 @@ public class SpoonSlave extends Composite implements TabItemInterface {
     this.spoon = spoon;
     this.slaveServer = slaveServer;
     this.log = spoon.getLog();
-
-    lastLineMap = new HashMap<String, Integer>();
-    loggingMap = new HashMap<String, String>();
 
     FormLayout formLayout = new FormLayout();
     formLayout.marginWidth = Const.FORM_MARGIN;
@@ -474,12 +469,12 @@ public class SpoonSlave extends Composite implements TabItemInterface {
               SpoonSlave.this.slaveServer );
         }
 
-        Integer lastLine = lastLineMap.get( transStatus.getId() );
-        int lastLineNr = lastLine == null ? 0 : lastLine;
+//        Integer lastLine = lastLineMap.get( transStatus.getId() );
+//        int lastLineNr = lastLine == null ? 0 : lastLine;
 
         SlaveServerTransStatus ts =
           SpoonSlave.this.slaveServer.getTransStatus(
-            transStatus.getTransName(), transStatus.getId(), lastLineNr );
+            transStatus.getTransName(), transStatus.getId(), 0 );
         if ( log.isDetailed() ) {
           log.logDetailed( "Finished receiving transformation status for [{0}] from server [{1}]", transStatus
             .getTransName(), SpoonSlave.this.slaveServer );
@@ -487,13 +482,8 @@ public class SpoonSlave extends Composite implements TabItemInterface {
         List<StepStatus> stepStatusList = ts.getStepStatusList();
         transStatus.setStepStatusList( stepStatusList );
 
-        lastLineMap.put( transStatus.getId(), ts.getLastLoggingLineNr() );
-        String logging = loggingMap.get( transStatus.getId() );
-        if ( logging == null ) {
-          logging = ts.getLoggingString();
-        } else {
-          logging = logging + ts.getLoggingString();
-        }
+//        lastLineMap.put( transStatus.getId(), ts.getLastLoggingLineNr() );
+        String logging = ts.getLoggingString();
 
         String[] lines = logging.split( "\r\n|\r|\n" );
         if ( lines.length > PropsUI.getInstance().getMaxNrLinesInLog() ) {
@@ -507,7 +497,7 @@ public class SpoonSlave extends Composite implements TabItemInterface {
           logging = trimmedLog.toString();
         }
 
-        loggingMap.put( transStatus.getId(), logging );
+        currentLogText = logging;
 
         item.removeAll();
         for ( StepStatus stepStatus : stepStatusList ) {
@@ -525,23 +515,18 @@ public class SpoonSlave extends Composite implements TabItemInterface {
           log.logDetailed( "Getting job status for [{0}] on server [{1}]", jobStatus.getJobName(), slaveServer );
         }
 
-        Integer lastLine = lastLineMap.get( jobStatus.getId() );
-        int lastLineNr = lastLine == null ? 0 : lastLine;
+//        Integer lastLine = lastLineMap.get( jobStatus.getId() );
+//        int lastLineNr = lastLine == null ? 0 : lastLine;
 
-        SlaveServerJobStatus ts = slaveServer.getJobStatus( jobStatus.getJobName(), jobStatus.getId(), lastLineNr );
+        SlaveServerJobStatus ts = slaveServer.getJobStatus( jobStatus.getJobName(), jobStatus.getId(), 0 );
 
         if ( log.isDetailed() ) {
           log.logDetailed(
             "Finished receiving job status for [{0}] from server [{1}]", jobStatus.getJobName(), slaveServer );
         }
 
-        lastLineMap.put( jobStatus.getId(), ts.getLastLoggingLineNr() );
-        String logging = loggingMap.get( jobStatus.getId() );
-        if ( logging == null ) {
-          logging = ts.getLoggingString();
-        } else {
-          logging = logging + ts.getLoggingString();
-        }
+//        lastLineMap.put( jobStatus.getId(), ts.getLastLoggingLineNr() );
+        String logging = ts.getLoggingString();
 
         String[] lines = logging.split( "\r\n|\r|\n" );
         if ( lines.length > PropsUI.getInstance().getMaxNrLinesInLog() ) {
@@ -555,7 +540,7 @@ public class SpoonSlave extends Composite implements TabItemInterface {
           logging = trimmedLog.toString();
         }
 
-        loggingMap.put( jobStatus.getId(), logging );
+        currentLogText = logging;
 
         Result result = ts.getResult();
         if ( result != null ) {
@@ -654,9 +639,8 @@ public class SpoonSlave extends Composite implements TabItemInterface {
         message.append( errorDescription ).append( Const.CR ).append( Const.CR );
       }
 
-      String logging = loggingMap.get( transStatus.getId() );
-      if ( !Utils.isEmpty( logging ) ) {
-        message.append( logging ).append( Const.CR );
+      if ( !Utils.isEmpty( currentLogText ) ) {
+        message.append( currentLogText ).append( Const.CR );
       }
 
       wText.setText( message.toString() );
@@ -671,9 +655,8 @@ public class SpoonSlave extends Composite implements TabItemInterface {
         message.append( errorDescription ).append( Const.CR ).append( Const.CR );
       }
 
-      String logging = loggingMap.get( jobStatus.getId() );
-      if ( !Utils.isEmpty( logging ) ) {
-        message.append( logging ).append( Const.CR );
+      if ( !Utils.isEmpty( currentLogText ) ) {
+        message.append( currentLogText ).append( Const.CR );
       }
 
       wText.setText( message.toString() );
