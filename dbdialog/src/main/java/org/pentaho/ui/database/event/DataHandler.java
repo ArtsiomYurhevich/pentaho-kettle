@@ -45,6 +45,7 @@ import org.pentaho.di.core.database.GenericDatabaseMeta;
 import org.pentaho.di.core.database.MSSQLServerNativeDatabaseMeta;
 import org.pentaho.di.core.database.OracleDatabaseMeta;
 import org.pentaho.di.core.database.PartitionDatabaseMeta;
+import org.pentaho.di.core.exception.KettleDatabaseException;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.plugins.DatabasePluginType;
@@ -648,6 +649,13 @@ public class DataHandler extends AbstractXulEventHandler {
       meta.setDBPort( portNumberBox.getValue() );
     }
 
+    // Custom driver class
+    if ( customDriverClassBox != null ) {
+      meta
+        .getAttributes()
+        .put( GenericDatabaseMeta.ATRRIBUTE_CUSTOM_DRIVER_CLASS, customDriverClassBox.getValue() );
+    }
+
     // Option parameters:
 
     if ( optionsParameterTree != null ) {
@@ -839,6 +847,11 @@ public class DataHandler extends AbstractXulEventHandler {
     // Port number:
     if ( portNumberBox != null ) {
       portNumberBox.setValue( meta.getDatabasePortNumberString() );
+    }
+
+    // Custom driver class
+    if ( customDriverClassBox != null ) {
+      customDriverClassBox.setValue( meta.getDriverClass() );
     }
 
     // Options Parameters:
@@ -1280,11 +1293,6 @@ public class DataHandler extends AbstractXulEventHandler {
     if ( customUrlBox != null ) {
       meta.getAttributes().put( GenericDatabaseMeta.ATRRIBUTE_CUSTOM_URL, customUrlBox.getValue() );
     }
-    if ( customDriverClassBox != null ) {
-      meta
-        .getAttributes()
-        .put( GenericDatabaseMeta.ATRRIBUTE_CUSTOM_DRIVER_CLASS, customDriverClassBox.getValue() );
-    }
 
     // Server Name: (Informix)
     if ( serverNameBox != null ) {
@@ -1384,8 +1392,7 @@ public class DataHandler extends AbstractXulEventHandler {
       customUrlBox.setValue( meta.getAttributes().getProperty( GenericDatabaseMeta.ATRRIBUTE_CUSTOM_URL ) );
     }
     if ( customDriverClassBox != null ) {
-      customDriverClassBox.setValue( meta.getAttributes().getProperty(
-        GenericDatabaseMeta.ATRRIBUTE_CUSTOM_DRIVER_CLASS ) );
+      customDriverClassBox.setValue( meta.getDriverClass() );
     }
 
     // Server Name: (Informix)

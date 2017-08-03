@@ -2,6 +2,8 @@
 					xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 					xmlns:pen="http://www.pentaho.org/2008/xul" >
 					<caption label="${DatabaseDialog.USER_SETTINGS}" />
+					<label id="custom-driver-class-label" value="${DatabaseDialog.USER_Custom_Class}" />
+					<textbox pen:customclass="variabletextbox" id="custom-driver-class-text" />
 					<label id="server-host-name-label" value="${DatabaseDialog.label.ServerHostname}" />
 					<textbox pen:customclass="variabletextbox" id="server-host-name-text" />
 					<label id="database-name-label" value="${DatabaseDialog.label.DatabaseName}" />
