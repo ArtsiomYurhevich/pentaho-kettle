@@ -38,6 +38,8 @@ import java.util.Set;
 
 public class MySQLDatabaseMeta extends BaseDatabaseMeta implements DatabaseInterface {
 
+  public static final String ATRRIBUTE_CUSTOM_DRIVER_CLASS = "CUSTOM_DRIVER_CLASS";
+
   private static final Set<String>
     SHORT_MESSAGE_EXCEPTIONS =
     Sets.newHashSet( "com.mysql.jdbc.PacketTooBigException", "com.mysql.jdbc.MysqlDataTruncation" );
@@ -93,10 +95,19 @@ public class MySQLDatabaseMeta extends BaseDatabaseMeta implements DatabaseInter
   @Override public String getDriverClass() {
     if ( getAccessType() == DatabaseMeta.TYPE_ACCESS_ODBC ) {
       return "sun.jdbc.odbc.JdbcOdbcDriver";
-    } else {
-      return "org.gjt.mm.mysql.Driver";
+    } else  {
+      return getAttributes().getProperty( ATRRIBUTE_CUSTOM_DRIVER_CLASS, "com.mysql.jdbc.Driver" );
     }
   }
+
+  @Override public String getDefaultDriverClass() {
+    if ( getAccessType() == DatabaseMeta.TYPE_ACCESS_ODBC ) {
+      return "sun.jdbc.odbc.JdbcOdbcDriver";
+    } else  {
+      return "com.mysql.jdbc.Driver";
+    }
+  }
+
 
   @Override public String getURL( String hostname, String port, String databaseName ) {
     if ( getAccessType() == DatabaseMeta.TYPE_ACCESS_ODBC ) {

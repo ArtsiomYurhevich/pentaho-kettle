@@ -146,6 +146,16 @@ public class FragmentHandler extends AbstractXulEventHandler {
       }
     }
 
+    XulTextbox driverClassBox = (XulTextbox) document.getElementById( "custom-driver-class-text" );
+    if ( driverClassBox != null ) {
+      String defaultDriver = database.getDefaultDriverClass();
+      if ( defaultDriver != null ) {
+        driverClassBox.setValue( defaultDriver );
+      } else {
+        driverClassBox.setValue( database.getDriverClass() );
+      }
+    }
+
     if ( dataHandler != null ) {
       dataHandler.popCache();
     }

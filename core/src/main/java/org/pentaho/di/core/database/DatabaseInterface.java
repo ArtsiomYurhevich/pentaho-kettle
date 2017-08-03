@@ -302,6 +302,13 @@ public interface DatabaseInterface extends Cloneable {
   public String getDriverClass();
 
   /**
+   * @return the default driver class name
+   */
+  default String getDefaultDriverClass() {
+    return null;
+  }
+
+  /**
    * @param hostname
    *          the hostname
    * @param port
