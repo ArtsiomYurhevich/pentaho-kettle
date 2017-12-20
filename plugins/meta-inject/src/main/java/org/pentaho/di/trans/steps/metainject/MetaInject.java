@@ -40,6 +40,7 @@ import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.repository.RepositoryDirectory;
 import org.pentaho.di.repository.RepositoryDirectoryInterface;
 import org.pentaho.di.trans.RowProducer;
+import org.pentaho.di.trans.StepWithMappingMeta;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.TransStoppedListener;
@@ -622,7 +623,12 @@ public class MetaInject extends BaseStep implements StepInterface {
         meta.actualizeMetaInjectMapping();
         data.transMeta = loadTransformationMeta();
         data.transMeta.copyVariablesFrom( this );
-        data.transMeta.copyParametersFrom( this.getTransMeta() );
+        data.transMeta.mergeParametersWith( this.getTrans(), true );
+//        activateParameters();
+//        data.transMeta.copyParametersFrom( this.getTransMeta() );
+//        data.transMeta.activateParameters();
+//        StepWithMappingMeta.activateParams( data.transMeta, data.transMeta, this,
+//          data.transMeta.listParameters(), new String[]{}, new String[]{} );
         checkSoureStepsAvailability();
         checkTargetStepsAvailability();
         // Get a mapping between the step name and the injection...
